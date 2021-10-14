@@ -2,7 +2,7 @@
 mlflowを使ったパラメータ管理のデモ
 
 ## 初期設定
-numpy, mlflow, jupyerlaなどをインストール。
+numpy, mlflow, jupyerlabなどをインストール。
 
     pip install -r requirements.txt
 
@@ -29,3 +29,9 @@ VSCodeの場合はDevcontainerで開くと自動でインストールされる�
     cd mlflow-demo
     python simulation3.py
 
+## いくつかの実装
+ブラウン運動のシミュレーションを例にして3通りの実装を用意しました。
+
+ * `simulation1.py`: 一番単純にmlflowを使う
+ * `simulation2.py`: 異なるパラメータについて並列で計算
+ * `simulation3.py`: クラスを使った実装+テスト
