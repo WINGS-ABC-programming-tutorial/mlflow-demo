@@ -2,18 +2,11 @@
 """
 Overview:
     パラメータを変えながらブラウン運動のシミュレーションを実行してmlflowに結果を保存する
-
-Usage:
-    simulation.py [<num_cpus>]
-
-Options:
-    num_cpus    : 並列数（Default: CPU数)
 """
-import sys
+import itertools
 
 import mlflow
 import numpy as np
-from joblib import Parallel, cpu_count, delayed
 
 
 def run_simulation(
@@ -32,8 +25,13 @@ def run_simulation(
         ノイズの強さ
     """
     print("seed:", seed, "x0:", x0, "sigma:", sigma)
+    # 乱数シードを固定する
     rng = np.random.default_rng(seed)
+    # mlflowのexperiment nameを設定する
+    mlflow.set_experiment("sim1")
+    # sim2 Experimentの新しいRunを開始する
     with mlflow.start_run():
+        # パラメータを記録
         mlflow.log_params({
             "seed": seed,
             "x0": x0,
@@ -43,6 +41,7 @@ def run_simulation(
         for epoch in range(100):
             # x' ~ N(x, sigma^2)
             x = x + sigma * rng.normal()
+            # 結果を記録
             mlflow.log_metrics({
                 "x": x,
             }, step=epoch)
@@ -53,14 +52,6 @@ x0s = [1.0, 1.5]
 sigmas = [0.1, 0.2]
 
 if __name__ == "__main__":
-    if len(sys.argv) == 2:
-        n_cpus = int(sys.argv[1])
-    else:
-        n_cpus = cpu_count()
-
-    Parallel(n_jobs=n_cpus)([
-        delayed(run_simulation)(seed, x0, sigma)
-        for seed in range(N_seed)
-        for x0 in x0s
-        for sigma in sigmas
-    ])
+    for x0, sigma in itertools.product(x0s, sigmas):
+        for seed in range(N_seed):
+            run_simulation(seed, x0, sigma)

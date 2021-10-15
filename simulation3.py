@@ -13,8 +13,8 @@ import sys
 
 from joblib import Parallel, cpu_count, delayed
 
-from lib.brownian_motion import ParamBrownianMotion
-from lib.simulator import ParamSimulator, Simulator
+from lib3.brownian_motion import ParamBrownianMotion
+from lib3.simulator import ParamSimulator, Simulator
 
 N_seed = 5
 x0s = [1.0, -1.0]
@@ -24,6 +24,19 @@ sigmas = [0.1, 0.2]
 def get_simulator(
     seed: int, x0: float, sigma: float
 ) -> Simulator:
+    """
+    Simulatorクラスのインスタンスを作成する
+
+    Parameters
+    ----------
+    seed: int
+    x0: int
+    sigma: float
+
+    Returns
+    -------
+    sim: Simulator
+    """
     param = ParamSimulator(
         total_step=500,
         record_per=10,
@@ -36,6 +49,9 @@ def get_simulator(
 
 
 def process(*args, **kwargs) -> None:
+    """
+    シミュレーターを実行するだけの関数
+    """
     sim = get_simulator(*args, **kwargs)
     sim.run()
 

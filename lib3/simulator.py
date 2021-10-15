@@ -33,10 +33,12 @@ class Simulator:
         self.record_per = param.record_per
         self.bm = BrownianMotion(param.param_bm)
 
-        # get flattened dict of params
+        # パラメータをflattenした辞書として取得する
+        #   flattenすることでmlflowが受け取ってくれる
+        #   パラメータに階層構造があってもドットでつなげてくれる
         self.params_mlflow = flatten(asdict(param), reducer='dot')
 
-        # mlflow setup
+        # mlflowをセットアップする
         mlflow.set_tracking_uri(self.cache_dir)
         self.mlflow_client = mlflow.tracking.MlflowClient(tracking_uri=self.cache_dir)
         exp = self.mlflow_client.get_experiment_by_name(exp_name)
@@ -47,6 +49,8 @@ class Simulator:
         self.run_tags = run_tags
         self.run_name = run_name
 
+        # シミュレーション実行後に結果を取得できるようにする準備
+        #   check_previous_runs=Trueなら過去の結果をmlflowから取り出す
         self.done = False
         self.result: Dict[str, Any] = {}
         self.run_id: Optional[str] = None
@@ -82,14 +86,14 @@ class Simulator:
             print(f"Starting Run {self.run_name} (ID={self.run_id})")
             mlflow.log_params(self.params_mlflow)
 
-            # initialize
-            state = self.bm.initial_state
+            # 初期化
+            state = self.bm.state
             mlflow.log_metrics({
                 "state": state,
             }, step=0)
-            # start simulation
+            # シミュレーション開始
             for step in range(self.total_step):
-                state = self.bm.step(state)
+                state = self.bm.step()
 
                 if step % self.record_per == self.record_per - 1:
                     mlflow.log_metrics({
@@ -99,6 +103,15 @@ class Simulator:
         return
 
     def get_state_history(self) -> List[mlflow.entities.Metric]:
+        """
+        シミュレーションを実行したあとで状態の軌跡を取得する
+        run_idが必要なので、check_previous_run=Trueでコンストラクタを呼び出すか
+        run()を実行したあとでないとRuntimeErrorを発生させる
+
+        Returns
+        -------
+        state_history: List[mlflow.entries.Metric]
+        """
         if self.run_id is None:
             raise RuntimeError("Please run simulation first or set the params of finished result")
 
