@@ -30,6 +30,7 @@ VSCodeの場合はDevcontainerで開くと自動でインストールされる�
 
 引数の数字(`1`)は何個並列計算させるかを指定する。
 
+notebookから実験結果を取得して可視化などを方法は[notebook/demo.ipynb](notebook/demo.ipynb)で紹介した。
 
 ## いくつかの実装
 ブラウン運動のシミュレーションを例にして4通りの実装を用意した。
