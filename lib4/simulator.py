@@ -1,10 +1,13 @@
 """
 ブラウン運動シミュレータ
 """
+import tempfile
 from dataclasses import asdict, dataclass
+from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 import mlflow
+import numpy as np
 from flatten_dict import flatten, unflatten
 
 from .brownian_motion import BrownianMotion, ParamBrownianMotion
@@ -16,6 +19,8 @@ class ParamSimulator:
     total_step: int = 1000
     # 何ステップおきにmlflowに記録するか
     record_per: int = 10
+    # 軌跡全部をmlflow artifact全体として保存するか
+    save_full_traj: bool = True
     # ブラウン運動のパラメータ
     param_bm: ParamBrownianMotion = ParamBrownianMotion(
         seed=0, initial_state=0., sigma=1.)
@@ -24,17 +29,18 @@ class ParamSimulator:
 class Simulator:
     def __init__(
         self,
-        exp_name: str,
+        exp_name: str,  # mlflowの実験の名前
         param: ParamSimulator,
-        cache_dir: str = "./mlruns",
-        run_name: Optional[str] = None,
-        run_tags: Optional[Dict[str, Any]] = None,
-        check_previous_runs: bool = True,
+        cache_dir: str = "./mlruns",  # mlflowのデータ保存先
+        run_name: Optional[str] = None,  # mlflowのRunにつける名前
+        run_tags: Optional[Dict[str, Any]] = None,  # mlflowのRunにつけるタグ
+        check_previous_runs: bool = True,  # 同じパラメータでの実験結果がないか検索する
     ) -> None:
         self.cache_dir = cache_dir
         self.total_step = param.total_step
         self.record_per = param.record_per
-        self.bm = BrownianMotion(param.param_bm)
+        self.save_full_trajectory = param.save_full_traj
+        self.bm = BrownianMotion(param.param_bm, param.save_full_traj, self.total_step)
 
         # パラメータをflattenした辞書として取得する
         #   flattenすることでmlflowが受け取ってくれる
@@ -105,14 +111,24 @@ class Simulator:
                     mlflow.log_metrics({
                         "state": state,
                     }, step=step)
+
+            # 状態軌跡をmlflowにartifactとして保存
+            self.state_trajectory = self.bm.state_trajectory
+            with tempfile.TemporaryDirectory() as tmp_dir:
+                tmp_path = Path(tmp_dir).joinpath("state_trajectory.bin")
+                with tmp_path.open("wb") as f:
+                    np.save(f, self.state_trajectory)
+                mlflow.log_artifact(str(tmp_path))
+
         self.done = True
         return
 
-    def get_state_history(self) -> List[mlflow.entities.Metric]:
+    def get_metric_history(self) -> List[mlflow.entities.Metric]:
         """
         シミュレーションを実行したあとで状態の軌跡を取得する
         run_idが必要なので、check_previous_run=Trueでコンストラクタを呼び出すか
         run()を実行したあとでないとRuntimeErrorを発生させる
+        これはrecord_perステップおきに保存されたものを取得する。軌跡全体を取得するにはget_state_trajectory()
 
         Returns
         -------
@@ -122,3 +138,29 @@ class Simulator:
             raise RuntimeError("Please run simulation first or set the params of finished result")
 
         return self.mlflow_client.get_metric_history(self.run_id, "state")
+
+    def get_state_trajectory(self) -> np.ndarray:
+        """
+        シミュレーションを実行したあとで状態の軌跡全体を取得する
+        record_perステップおきにmetricとして保存されたものを取得するにはget_metric_histroy()
+
+        Returns
+        -------
+        state_trajectory: np.ndarray (total_step, ) float
+        """
+        # run()でシミュレーションを実行した後なら実行結果のデータがすでにある
+        if self.state_trajectory is not None:
+            return self.state_trajectory
+        else:
+            # Use download_artifacts if artifacts are not saved in the local filesystem
+            parent_path = Path(self.cache_dir).parent
+            artifact_path = parent_path.joinpath(
+                self.result["artifact_uri"],
+                "state_trajectory.bin"
+            )
+            if artifact_path.exists():
+                data = np.load(str(artifact_path))
+                self.state_trajectory = data
+                return data
+            else:
+                raise FileNotFoundError(f"{str(artifact_path)} does not exists!")

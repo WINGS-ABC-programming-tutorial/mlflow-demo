@@ -14,8 +14,8 @@ from pathlib import Path
 
 from joblib import Parallel, cpu_count, delayed
 
-from lib3.brownian_motion import ParamBrownianMotion
-from lib3.simulator import ParamSimulator, Simulator
+from lib4.brownian_motion import ParamBrownianMotion
+from lib4.simulator import ParamSimulator, Simulator
 
 N_seed = 5
 x0s = [1.0, -1.0]
@@ -41,12 +41,13 @@ def get_simulator(
     param = ParamSimulator(
         total_step=500,
         record_per=10,
+        save_full_traj=True,
         param_bm=ParamBrownianMotion(
             seed=seed, initial_state=x0, sigma=sigma
         )
     )
     sim = Simulator(
-        exp_name="sim3",
+        exp_name="sim4",
         param=param,
         # このファイルがある場所にmlrunsディレクトリをつくる
         #   この指定をするとnotebookからimportしたときにも同じmlrunsを参照できる
