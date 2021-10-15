@@ -97,8 +97,8 @@ class Simulator:
             mlflow.log_metrics({
                 "state": state,
             }, step=0)
-            # シミュレーション開始
-            for step in range(self.total_step):
+            # シミュレーション開始 (初期時刻がstep=0で、そこからtotal_step回更新)
+            for step in range(1, self.total_step + 1):
                 state = self.bm.step()
 
                 if step % self.record_per == self.record_per - 1:

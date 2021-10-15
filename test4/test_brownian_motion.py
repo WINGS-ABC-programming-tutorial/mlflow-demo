@@ -99,7 +99,7 @@ class TestBrownianMotion:
         assert np.allclose(bm.state_trajectory, state_trajectory)
 
     @pytest.mark.parametrize("seed", [123, 456])
-    @pytest.mark.parametrize("init1", [-10., 0., +1.])
+    @pytest.mark.parametrize("init1", [-10., +1.])
     @pytest.mark.parametrize("init2", [-10., +10.])
     @pytest.mark.parametrize("sigma", [0.1, 10.])
     def test_linearity_of_trajectory_wrt_initial_state(self, seed, init1, init2, sigma):

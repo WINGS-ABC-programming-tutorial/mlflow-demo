@@ -27,6 +27,11 @@ class ParamSimulator:
 
 
 class Simulator:
+    done: bool = False
+    result: Dict[str, Any] = {}
+    state_trajectory: Optional[np.ndarray] = None
+    run_id: Optional[str] = None
+
     def __init__(
         self,
         exp_name: str,  # mlflowの実験の名前
@@ -60,9 +65,6 @@ class Simulator:
 
         # シミュレーション実行後に結果を取得できるようにする準備
         #   check_previous_runs=Trueなら過去の結果をmlflowから取り出す
-        self.done = False
-        self.result: Dict[str, Any] = {}
-        self.run_id: Optional[str] = None
         if check_previous_runs:
             # 同じパラメータでFINISHEDステータスになっている結果があるか検索する
             query = " and ".join([f"param.{k} = '{v}'" for k, v in self.params_mlflow.items()])
@@ -103,8 +105,8 @@ class Simulator:
             mlflow.log_metrics({
                 "state": state,
             }, step=0)
-            # シミュレーション開始
-            for step in range(self.total_step):
+            # シミュレーション開始 (初期時刻がstep=0で、そこからtotal_step回更新)
+            for step in range(1, self.total_step + 1):
                 state = self.bm.step()
 
                 if step % self.record_per == self.record_per - 1:
@@ -148,11 +150,11 @@ class Simulator:
         -------
         state_trajectory: np.ndarray (total_step, ) float
         """
-        # run()でシミュレーションを実行した後なら実行結果のデータがすでにある
         if self.state_trajectory is not None:
+            # run()でシミュレーションを実行した後なら実行結果のデータがすでにある
             return self.state_trajectory
-        else:
-            # Use download_artifacts if artifacts are not saved in the local filesystem
+        elif self.result is not None:
+            # 以前実行した結果がある場合はそのartifactから読み出す
             parent_path = Path(self.cache_dir).parent
             artifact_path = parent_path.joinpath(
                 self.result["artifact_uri"],
@@ -160,7 +162,11 @@ class Simulator:
             )
             if artifact_path.exists():
                 data = np.load(str(artifact_path))
+                # キャッシュしておく
                 self.state_trajectory = data
                 return data
             else:
                 raise FileNotFoundError(f"{str(artifact_path)} does not exists!")
+        else:
+            # シミュレーションを一度も実行していない
+            raise RuntimeError("Please run simulation first")
