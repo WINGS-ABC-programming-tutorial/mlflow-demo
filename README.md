@@ -16,7 +16,7 @@ VSCodeの場合はDevcontainerで開くと自動でインストールされる�
 
     mlflow server --port 5000
 
-ブラウザで http://127.0.0.1:5000 にアクセスする。Devcontainerを使っていて見れない場合はPort-Forwardingができているか確認する。
+ブラウザで http://127.0.0.1:5000 にアクセスする。Devcontainerで見れない場合はPort-Forwardingができているか確認する。
 
 ２つ目はjupyter labを立ち上げる。
 
@@ -30,7 +30,7 @@ VSCodeの場合はDevcontainerで開くと自動でインストールされる�
 
 引数の数字(`1`)は何個並列計算させるかを指定する。
 
-notebookから実験結果を取得して可視化などを方法は[notebook/demo.ipynb](notebook/demo.ipynb)で紹介した。
+notebookから実験結果を取得して可視化する方法などは[notebook/demo.ipynb](notebook/demo.ipynb)で紹介した。
 
 ## いくつかの実装
 ブラウン運動のシミュレーションを例にして4通りの実装を用意した。
